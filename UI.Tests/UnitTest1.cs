@@ -32,7 +32,7 @@ namespace UI.Tests
         [TestMethod]
         public void CreateCustomerWithoutNameShouldGiveValidationError()
         {
-            _driver.Navigate().GoToUrl("http://localhost:50521/Customer/Create");
+            _driver.Navigate().GoToUrl("http://localhost:44391/Customer/Create");
             _driver.FindElement((By.Id("PersonNummer"))).SendKeys("1212129999");
             _driver.FindElement(By.Id("submitButton")).Click();
             Wait(5);

@@ -60,7 +60,7 @@ namespace HarrysSMSWeb.Controllers
                     ModelState.AddModelError("PersonNummer","Finns redan");                     
                 else
                 {
-                    _customerRepository.Add(new Customer {PersonNummer =  model.PersonNummer, Name = model.Namn});
+                    _customerRepository.Add(new Customer { PersonNummer = model.PersonNummer, Name = model.Namn });
                     _eventChannel.Publish(new NewCustomerCreated{ PersonNummer = model.PersonNummer});
                     return RedirectToAction(nameof(Index));
                 }

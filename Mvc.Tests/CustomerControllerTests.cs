@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grpc.Core;
 using HarrysSMSWeb.Controllers;
 using HarrysSMSWeb.Events;
 using HarrysSMSWeb.Models;
@@ -10,6 +11,8 @@ using Moq;
 
 namespace Mvc.Tests
 {
+
+    
     [TestClass]
     public class CustomerControllerTests
     {
@@ -17,79 +20,102 @@ namespace Mvc.Tests
         private Mock<ICustomerRepository> customerRepository;
         private Mock<IEventChannel> eventChannel;
 
-
         [TestInitialize]
         public void Initialize()
         {
             customerRepository = new Mock<ICustomerRepository>();
             eventChannel = new Mock<IEventChannel>();
-            sut = new CustomerController(customerRepository.Object,eventChannel.Object);
+            sut = new CustomerController(customerRepository.Object, eventChannel.Object);
         }
 
         [TestMethod]
-        public void IndexShouldReturnCorrectView()
+        public void Index_should_return_correct_view()
         {
-            customerRepository.Setup(r => r.GetAll()).Returns(new List<Customer>());
-            
             var result = sut.Index() as ViewResult;
             Assert.IsNull(result.ViewName); //Same as Action
-            //Assert.AreEqual("Red", result.ViewName); //om annan än actionname
         }
 
-        [TestMethod]
-        public void IndexShouldUseCorrectViewModel()
-        {
-            customerRepository.Setup(r => r.GetAll()).Returns(new List<Customer>());
 
+        [TestMethod]
+        public void Index_should_use_correct_viewmodel()
+        {
             var result = sut.Index() as ViewResult;
-            Assert.IsInstanceOfType(result.Model, typeof(CustomerListViewModel));
+            Assert.IsInstanceOfType( result.Model,   typeof(CustomerListViewModel));
         }
 
         [TestMethod]
-        public void IndexShouldUseListOfCustomers()
+        public void Index_should_fill_list_of_customers_in_viewmodel()
         {
-            customerRepository.Setup(r => r.GetAll()).Returns(new List<Customer>
-            {
-                new Customer { CustomerId = 1, PersonNummer = "123",Name="Hello"},
-                new Customer { CustomerId = 2, PersonNummer = "222", Name = "Kajsa Anka" }
-            });
+            var list = new List<Customer>();
+            list.Add(new Customer {Name="Hej",CustomerId = 1});
+            list.Add(new Customer { Name = "Hopp", CustomerId = 2 });
+
+            customerRepository.Setup(c => c.GetAll()).Returns(list);
 
             var result = sut.Index() as ViewResult;
             var model = result.Model as CustomerListViewModel;
-            Assert.AreEqual(2, model.Customers.Count);
-            Assert.AreEqual(1, model.Customers[0].Id);
-            Assert.AreEqual("222", model.Customers[1].PersonNummer);
-            Assert.AreEqual("Kajsa Anka", model.Customers[1].Namn);
+            Assert.IsTrue(model.Customers.Count > 0);
         }
 
 
         [TestMethod]
-        public void CreateShouldReturnSameViewWhenValidationError()
+        public void Index_should_fill_complete_list_of_customers()
         {
-            sut.ModelState.AddModelError("x", "error");
-            var result = sut.Create(new CustomerEditViewModel ()) as ViewResult;
+            var list = new List<Customer>();
+            list.Add(new Customer { Name = "Hej", CustomerId = 1 });
+            list.Add(new Customer { Name = "Hopp", CustomerId = 2 });
+
+            customerRepository.Setup(c => c.GetAll()).Returns(list);
+
+            var result = sut.Index() as ViewResult;
+            var model = result.Model as CustomerListViewModel;
+            Assert.AreEqual( list.Count,  model.Customers.Count );
+        }
+
+
+        [TestMethod]
+        public void Index_should_map_correctly()
+        {
+            var list = new List<Customer>();
+            list.Add(new Customer { Name = "Hej", CustomerId = 1 });
+            list.Add(new Customer { Name = "Hopp", CustomerId = 2 });
+
+            customerRepository.Setup(c => c.GetAll()).Returns(list);
+
+            var result = sut.Index() as ViewResult;
+            var model = result.Model as CustomerListViewModel;
+            Assert.AreEqual("Hej", model.Customers[0].Namn);
+            Assert.AreEqual(1, model.Customers[0].Id);
+        }
+
+
+
+
+        [TestMethod]
+        public void Create_should_return_same_view_when_not_valid()
+        {
+            sut.ModelState.AddModelError("x","asdasd");
+            var result = sut.Create(new CustomerEditViewModel()) as ViewResult;
             Assert.IsNull(result.ViewName); //Same as Action
         }
+
+
         [TestMethod]
-        public void CreateShouldNotSaveWhenValidationError()
+        public void Create_should_not_save_when_not_valid()
         {
-            customerRepository.Setup(r => r.Add(It.IsAny<Customer>())).Returns(1);
-            sut.ModelState.AddModelError("x", "error");
+            sut.ModelState.AddModelError("x", "asdasd");
             var result = sut.Create(new CustomerEditViewModel()) as ViewResult;
             customerRepository.Verify(r=>r.Add(It.IsAny<Customer>()), Times.Never);
         }
+
+
         [TestMethod]
-        public void CreateShouldReturnErrorIfAlreadyExisting()
+        public void Create_should_return_error_when_already_existing()
         {
-            customerRepository.Setup(r => r.Add(It.IsAny<Customer>())).Returns(1);
             customerRepository.Setup(r => r.GetByPersonNummer(It.IsAny<string>())).Returns(new Customer());
             var result = sut.Create(new CustomerEditViewModel()) as ViewResult;
-
-            customerRepository.Verify(r => r.Add(It.IsAny<Customer>()), Times.Never);
             Assert.IsFalse(sut.ModelState.IsValid);
-            Assert.IsNull(result.ViewName); //Same as Action
         }
-
 
 
     }
